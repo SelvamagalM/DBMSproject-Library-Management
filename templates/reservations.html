@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Reservations - Library Management{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="display-5 fw-bold text-primary">
+            <i class="fas fa-clock"></i> Book Reservations
+        </h1>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="alertContainer"></div>
+
+<!-- Reserve Book Section -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-plus"></i> Reserve a Book</h5>
+            </div>
+            <div class="card-body">
+                <form id="reserveForm" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Select Member <span class="text-danger">*</span></label>
+                        <select class="form-select" name="member_id" required>
+                            <option value="">-- Choose Member --</option>
+                            {% for member in members %}
+                            <option value="{{ member.member_id }}">{{ member.name }} ({{ member.member_type }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Select Book <span class="text-danger">*</span></label>
+                        <select class="form-select" name="book_id" required>
+                            <option value="">-- Choose Book --</option>
+                            {% for book in books %}
+                            <option value="{{ book.book_id }}">{{ book.title }} (ISBN: {{ book.isbn }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-primary" onclick="submitReservation()">
+                            <i class="fas fa-calendar-check"></i> Reserve Book
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Books with Reservations -->
+<div class="row">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-list"></i> Books with Pending Reservations</h3>
+        
+        {% if books_with_reservations %}
+        <div class="row g-3">
+            {% for book in books_with_reservations %}
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">{{ book.title }}</h6>
+                        <small class="text-muted">by {{ book.author }}</small>
+                        <small class="text-muted d-block">ISBN: <code>{{ book.isbn }}</code></small>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">
+                            <strong>Queue Length:</strong>
+                            <span class="badge bg-warning">{{ book.queue_count }} reservations</span>
+                        </p>
+                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" 
+                                data-bs-target="#queueModal{{ book.book_id }}" onclick="loadQueue({{ book.book_id }})">
+                            <i class="fas fa-eye"></i> View Queue
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Queue Modal -->
+            <div class="modal fade" id="queueModal{{ book.book_id }}" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Reservation Queue - {{ book.title }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="queue-{{ book.book_id }}" class="queue-container">
+                                <div class="text-center text-muted">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No books with pending reservations.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function submitReservation() {
+    const form = document.getElementById('reserveForm');
+    const member_id = form.querySelector('[name="member_id"]').value;
+    const book_id = form.querySelector('[name="book_id"]').value;
+    
+    if (!member_id || !book_id) {
+        showAlert('Please select both member and book', 'danger');
+        return;
+    }
+    
+    fetch('/api/reservations/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            member_id: member_id,
+            book_id: book_id
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            form.reset();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error: ' + error, 'danger');
+    });
+}
+
+function loadQueue(bookId) {
+    const container = document.getElementById(`queue-${bookId}`);
+    
+    fetch(`/api/reservations/book/${bookId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No reservations</div>';
+                return;
+            }
+            
+            let html = '<table class="table table-sm"><thead><tr><th>Position</th><th>Member</th><th>Type</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody>';
+            
+            data.forEach((item, index) => {
+                let typeColor = item.member_type === 'Student' ? 'primary' : (item.member_type === 'Faculty' ? 'success' : 'warning');
+                let statusColor = item.status === 'waiting' ? 'warning' : 'success';
+                
+                html += `<tr>
+                    <td><strong>${index + 1}</strong></td>
+                    <td>${item.name}</td>
+                    <td><span class="badge bg-${typeColor}">${item.member_type}</span></td>
+                    <td><span class="badge bg-${statusColor}">${item.status || 'pending'}</span></td>
+                    <td>${item.reservation_date.substring(0, 10)}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="cancelReservation(${item.reservation_id})">Cancel</button></td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        })
+        .catch(error => {
+            container.innerHTML = '<div class="alert alert-danger">Error loading queue</div>';
+        });
+}
+
+function cancelReservation(reservationId) {
+    if (!confirm('Are you sure you want to cancel this reservation?')) return;
+    
+    fetch(`/api/reservations/cancel/${reservationId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error: ' + error, 'danger');
+    });
+}
+
+function showAlert(message, type = 'info') {
+    const alertContainer = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

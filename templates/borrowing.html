@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+{% block title %}Borrowing & Returns - Library Management{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="display-5 fw-bold text-primary">
+            <i class="fas fa-exchange-alt"></i> Borrowing & Returns
+        </h1>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="alertContainer"></div>
+
+<div class="row g-4">
+    <!-- Issue Book Section -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-check-circle"></i> Issue Book</h5>
+            </div>
+            <div class="card-body">
+                <form id="issueForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select Member <span class="text-danger">*</span></label>
+                        <select class="form-select" name="member_id" required>
+                            <option value="">-- Choose Member --</option>
+                            {% for member in members %}
+                            <option value="{{ member.member_id }}">{{ member.name }} (ID: {{ member.member_id }}) - {% if member.member_type == 'Student' %}<strong style="color: blue;">Student</strong>{% elif member.member_type == 'Faculty' %}<strong style="color: green;">Faculty</strong>{% else %}<strong style="color: orange;">Staff</strong>{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select Book <span class="text-danger">*</span></label>
+                        <select class="form-select" name="book_id" required>
+                            <option value="">-- Choose Available Book --</option>
+                            {% for book in books %}
+                            <option value="{{ book.book_id }}">{{ book.title }} by {{ book.author }} (ISBN: {{ book.isbn }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Borrowing Period (days)</label>
+                        <input type="number" class="form-control" name="borrow_days" value="14" min="1">
+                    </div>
+                    <button type="button" class="btn btn-info w-100" onclick="submitIssueBook()">
+                        <i class="fas fa-plus"></i> Issue Book
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Book Section -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-undo"></i> Return Book</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">Select an active borrowing to return:</p>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Member</th>
+                                <th>Type</th>
+                                <th>Book</th>
+                                <th>ISBN</th>
+                                <th>Due Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for borrowing in active_borrowings %}
+                            <tr>
+                                <td><code>{{ borrowing.borrowing_id }}</code></td>
+                                <td>{{ borrowing.name }}</td>
+                                <td>
+                                    {% if borrowing.member_type == 'Student' %}
+                                        <span class="badge bg-primary">Student</span>
+                                    {% elif borrowing.member_type == 'Faculty' %}
+                                        <span class="badge bg-success">Faculty</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Staff</span>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ borrowing.title }}</small></td>
+                                <td><code style="font-size: 0.75rem;">{{ borrowing.isbn }}</code></td>
+                                <td>
+                                    {% if borrowing.due_date < now.isoformat() %}
+                                        <span class="badge bg-danger">{{ borrowing.due_date[:10] }}</span>
+                                    {% else %}
+                                        {{ borrowing.due_date[:10] }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-success" 
+                                            onclick="submitReturnBook({{ borrowing.borrowing_id }})">
+                                        Return
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Borrowings Summary -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-list"></i> All Active Borrowings</h3>
+        
+        {% if active_borrowings %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Member</th>
+                        <th>Type</th>
+                        <th>ISBN</th>
+                        <th>Book Title</th>
+                        <th>Author</th>
+                        <th>Due Date</th>
+                        <th>Days Left</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for borrowing in active_borrowings %}
+                    <tr{% if borrowing.due_date < now.isoformat() %} class="table-danger"{% endif %}>
+                        <td><strong>{{ borrowing.borrowing_id }}</strong></td>
+                        <td>{{ borrowing.name }}</td>
+                        <td>
+                            {% if borrowing.member_type == 'Student' %}
+                                <span class="badge bg-primary">Student</span>
+                            {% elif borrowing.member_type == 'Faculty' %}
+                                <span class="badge bg-success">Faculty</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Staff</span>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ borrowing.isbn }}</code></td>
+                        <td>{{ borrowing.title }}</td>
+                        <td>{{ borrowing.author }}</td>
+                        <td>{{ borrowing.due_date[:10] }}</td>
+                        <td>
+                            {% set days_left = (borrowing.due_date[:10] | string()).replace('-', '') | int - now.isoformat()[:10].replace('-', '') | int %}
+                            {% if days_left < 0 %}
+                                <span class="badge bg-danger">{{ days_left }} (Overdue)</span>
+                            {% elif days_left <= 3 %}
+                                <span class="badge bg-warning">{{ days_left }}</span>
+                            {% else %}
+                                <span class="badge bg-success">{{ days_left }}</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-warning">Active</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No active borrowings.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function submitIssueBook() {
+    const form = document.getElementById('issueForm');
+    const member_id = form.querySelector('[name="member_id"]').value;
+    const book_id = form.querySelector('[name="book_id"]').value;
+    const borrow_days = form.querySelector('[name="borrow_days"]').value;
+    
+    if (!member_id || !book_id) {
+        showAlert('Please select both member and book', 'danger');
+        return;
+    }
+    
+    fetch('/api/borrowing/issue', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            member_id: member_id,
+            book_id: book_id,
+            borrow_days: borrow_days
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            form.reset();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error: ' + error, 'danger');
+    });
+}
+
+function submitReturnBook(borrowingId) {
+    if (!confirm('Are you sure you want to return this book?')) return;
+    
+    fetch('/api/borrowing/return', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            borrowing_id: borrowingId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error: ' + error, 'danger');
+    });
+}
+
+function showAlert(message, type = 'info') {
+    const alertContainer = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

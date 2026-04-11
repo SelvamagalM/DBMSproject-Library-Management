@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}Books - Library Management{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-5 fw-bold text-primary">
+            <i class="fas fa-book-open"></i> Books Management
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addBookModal">
+            <i class="fas fa-plus"></i> Add New Book
+        </button>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="alertContainer"></div>
+
+<!-- Search Section -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <input type="text" id="searchInput" class="form-control form-control-lg" 
+                       placeholder="Search by Title, Author, or ISBN...">
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-outline-primary btn-lg w-100" onclick="searchBooks()">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Books Table -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0" id="booksTable">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>ISBN</th>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Publisher</th>
+                    <th>Year</th>
+                    <th>Genre</th>
+                    <th>Total</th>
+                    <th>Available</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in books %}
+                <tr>
+                    <td><strong>{{ book.book_id }}</strong></td>
+                    <td><code>{{ book.isbn }}</code></td>
+                    <td>{{ book.title }}</td>
+                    <td>{{ book.author }}</td>
+                    <td>{{ book.publisher or 'N/A' }}</td>
+                    <td>{{ book.publication_year or 'N/A' }}</td>
+                    <td><span class="badge bg-primary">{{ book.genre or 'N/A' }}</span></td>
+                    <td><span class="badge bg-info">{{ book.quantity }}</span></td>
+                    <td>
+                        <span class="badge {% if book.available_quantity > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ book.available_quantity }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Book Modal -->
+<div class="modal fade" id="addBookModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-book"></i> Add New Book</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addBookForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Book Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Author <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="author" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ISBN <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="isbn" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Publisher</label>
+                                <input type="text" class="form-control" name="publisher">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Publication Year</label>
+                                <input type="number" class="form-control" name="publication_year">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Genre</label>
+                                <input type="text" class="form-control" name="genre" placeholder="e.g., Fiction, Science, History">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Quantity <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="quantity" value="1" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddBook()">
+                    <i class="fas fa-save"></i> Add Book
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function searchBooks() {
+    const searchTerm = document.getElementById('searchInput').value.trim();
+    
+    if (!searchTerm) {
+        location.reload();
+        return;
+    }
+    
+    fetch(`/api/books/search?q=${encodeURIComponent(searchTerm)}`)
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.querySelector('#booksTable tbody');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No books found</td></tr>';
+                return;
+            }
+            
+            data.forEach(book => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${book.book_id}</strong></td>
+                    <td><code>${book.isbn}</code></td>
+                    <td>${book.title}</td>
+                    <td>${book.author}</td>
+                    <td>${book.publisher || 'N/A'}</td>
+                    <td>${book.publication_year || 'N/A'}</td>
+                    <td><span class="badge bg-primary">${book.genre || 'N/A'}</span></td>
+                    <td><span class="badge bg-info">${book.quantity}</span></td>
+                    <td><span class="badge ${book.available_quantity > 0 ? 'bg-success' : 'bg-danger'}">${book.available_quantity}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        })
+        .catch(error => {
+            showAlert('Error searching books: ' + error, 'danger');
+        });
+}
+
+function submitAddBook() {
+    const form = document.getElementById('addBookForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    fetch('/api/books/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            form.reset();
+            document.querySelector('#addBookModal .btn-close').click();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error: ' + error, 'danger');
+    });
+}
+
+function showAlert(message, type = 'info') {
+    const alertContainer = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+
+// Search on Enter key
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchBooks();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,390 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Library Management{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section mb-5 hover-lift">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="hero-content fade-in-down">
+                <h1 class="hero-title bounce-animated">
+                    <i class="fas fa-book-reader icon-pulse"></i> Public Library Management System
+                </h1>
+                <p class="hero-subtitle fade-in">Welcome! Manage your library efficiently and effectively</p>
+                <div class="hero-stats fade-in-up">
+                    <div class="stat-badge hover-scale">
+                        <i class="fas fa-book icon-bounce"></i>
+                        <span class="badge-number">{{ stats.total_books }}</span>
+                        <small>Books</small>
+                    </div>
+                    <div class="stat-badge hover-scale" style="animation-delay: 0.15s;">
+                        <i class="fas fa-users icon-pulse"></i>
+                        <span class="badge-number">{{ stats.total_members }}</span>
+                        <small>Members</small>
+                    </div>
+                    <div class="stat-badge hover-scale" style="animation-delay: 0.3s;">
+                        <i class="fas fa-exchange-alt icon-spin"></i>
+                        <span class="badge-number">{{ stats.active_borrowings }}</span>
+                        <small>Borrowed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row g-4 mb-5">
+    <div class="col-md-6 col-lg-3">
+        <div class="card metric-card metric-card-primary h-100 hover-lift">
+            <div class="card-body">
+                <div class="metric-icon icon-pulse">
+                    <i class="fas fa-book"></i>
+                </div>
+                <h6 class="metric-label">Total Books</h6>
+                <h2 class="metric-value">{{ stats.total_books }}</h2>
+                <p class="metric-subtitle">{{ stats.available_books }} Available</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card metric-card metric-card-success h-100 hover-lift" style="animation-delay: 0.15s;">
+            <div class="card-body">
+                <div class="metric-icon icon-bounce">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h6 class="metric-label">Active Members</h6>
+                <h2 class="metric-value">{{ stats.total_members }}</h2>
+                <p class="metric-subtitle">Library Members</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card metric-card metric-card-warning h-100 hover-lift" style="animation-delay: 0.3s;">
+            <div class="card-body">
+                <div class="metric-icon icon-spin">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <h6 class="metric-label">Active Borrowings</h6>
+                <h2 class="metric-value">{{ stats.active_borrowings }}</h2>
+                <p class="metric-subtitle">Currently Out</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <div class="card metric-card metric-card-danger h-100 hover-lift" style="animation-delay: 0.45s;">
+            <div class="card-body">
+                <div class="metric-icon pulse-animated">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h6 class="metric-label">Overdue Books</h6>
+                <h2 class="metric-value">{{ stats.overdue_count }}</h2>
+                <p class="metric-subtitle">Pending Return</p>
+            </div>
+        </div>
+    </div>
+</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Section -->
+<div class="row mb-5 fade-in">
+    <div class="col-md-12">
+        <div class="card action-section hover-lift">
+            <div class="card-body">
+                <h5 class="card-title mb-4 fade-in-down">
+                    <i class="fas fa-lightning-bolt icon-pulse"></i> Quick Actions
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3 fade-in-left">
+                        <a href="{{ url_for('books_page') }}" class="action-card hover-lift">
+                            <div class="action-icon primary icon-bounce">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <h6>Add New Book</h6>
+                            <small>Register a new book in the library</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3 fade-in-left" style="animation-delay: 0.1s;">
+                        <a href="{{ url_for('members_page') }}" class="action-card hover-lift">
+                            <div class="action-icon success icon-bounce" style="animation-delay: 0.1s;">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <h6>Register Member</h6>
+                            <small>Add a new member to the library</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3 fade-in-right">
+                        <a href="{{ url_for('borrowing_page') }}" class="action-card hover-lift">
+                            <div class="action-icon info icon-spin">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <h6>Issue/Return Book</h6>
+                            <small>Manage book borrowing and returns</small>
+                        </a>
+                    </div>
+                    <div class="col-md-3 fade-in-right" style="animation-delay: 0.1s;">
+                        <a href="{{ url_for('reports_page') }}" class="action-card hover-lift">
+                            <div class="action-icon warning icon-pulse" style="animation-delay: 0.2s;">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <h6>View Reports</h6>
+                            <small>Check library statistics and reports</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Info Cards -->
+<div class="row g-4 fade-in">
+    <div class="col-md-6 fade-in-left">
+        <div class="card info-card hover-lift">
+            <div class="card-body">
+                <div class="info-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-rupee-sign icon-pulse"></i> Outstanding Fines
+                    </h5>
+                    <span class="badge bg-warning bounce-animated">Action Required</span>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <h6 class="text-muted" style="font-size: 0.85rem;">Total Amount</h6>
+                        <h2 class="fine-amount" style="font-size: 1.8rem;">₹<span id="dashFinesTotal">{{ "%.0f"|format(stats.outstanding_fines) }}</span></h2>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-muted" style="font-size: 0.85rem;">Pending Entries</h6>
+                        <h2 class="fine-amount" style="font-size: 1.8rem;"><span id="dashFinesCount">{{ stats.outstanding_fines_count }}</span></h2>
+                    </div>
+                </div>
+                <p class="text-muted mb-3" style="font-size: 0.9rem;">Total pending fines from library members</p>
+                <a href="{{ url_for('reports_page') }}" class="btn btn-sm btn-outline-warning hover-lift">
+                    <i class="fas fa-eye"></i> View Details
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 fade-in-right">
+        <div class="card info-card hover-lift">
+            <div class="card-body">
+                <div class="info-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-book-open icon-bounce"></i> Catalog
+                    </h5>
+                    <span class="badge bg-info pulse-animated">Browse</span>
+                </div>
+                <h2 class="catalog-stat">{{ stats.available_books }}</h2>
+                <p class="text-muted mb-3">Books available for borrowing</p>
+                <a href="{{ url_for('books_page') }}" class="btn btn-sm btn-outline-info hover-lift">
+                    <i class="fas fa-search"></i> Browse Books
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 40px;
+        margin-bottom: 30px;
+    }
+    
+    .hero-content {
+        text-align: center;
+    }
+    
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-bottom: 30px;
+    }
+    
+    .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        flex-wrap: wrap;
+    }
+    
+    .stat-badge {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 20px 30px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .stat-badge i {
+        font-size: 1.5rem;
+        display: block;
+        margin-bottom: 8px;
+    }
+    
+    .badge-number {
+        font-size: 1.8rem;
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+    }
+    
+    .stat-badge small {
+        opacity: 0.8;
+    }
+    
+    /* Metric Cards */
+    .metric-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, currentColor);
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .metric-card-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .metric-card-success { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); color: #333; }
+    .metric-card-warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: #333; }
+    .metric-card-danger { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; }
+    
+    .metric-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        opacity: 0.9;
+    }
+    
+    .metric-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        opacity: 0.85;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .metric-subtitle {
+        font-size: 0.85rem;
+        opacity: 0.7;
+        margin: 0;
+    }
+    
+    /* Action Section */
+    .action-section {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        background: linear-gradient(to right, #ffffff 0%, #f9f9f9 100%);
+    }
+    
+    .action-card {
+        display: block;
+        padding: 25px;
+        background: white;
+        border-radius: 10px;
+        text-decoration: none;
+        color: inherit;
+        border: 2px solid #f0f0f0;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+    
+    .action-card:hover {
+        border-color: #667eea;
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+    }
+    
+    .action-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin: 0 auto 15px;
+        color: white;
+    }
+    
+    .action-icon.primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .action-icon.success { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+    .action-icon.info { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .action-icon.warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    
+    .action-card h6 {
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 1rem;
+    }
+    
+    .action-card small {
+        color: #666;
+        display: block;
+    }
+    
+    /* Info Cards */
+    .info-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        background: white;
+    }
+    
+    .info-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .info-card .card-title {
+        color: #333;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .fine-amount, .catalog-stat {
+        color: #667eea;
+        font-weight: bold;
+        font-size: 2.5rem;
+        margin: 15px 0;
+    }
+</style>
+{% endblock %}

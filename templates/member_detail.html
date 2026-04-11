@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Member Detail - Library Management{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <a href="{{ url_for('members_page') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Members
+        </a>
+    </div>
+</div>
+
+<!-- Member Info Card -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-user-circle"></i> Member Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>ID:</strong> MEMBER-{{ member.id }}</p>
+                        <p><strong>Name:</strong> {{ member.name }}</p>
+                        <p><strong>Email:</strong> <a href="mailto:{{ member.email }}">{{ member.email }}</a></p>
+                        <p><strong>Member Since:</strong> {{ member.membership_date[:10] }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p>
+                            <strong>Member Type:</strong>
+                            {% if member.member_type == 'Student' %}
+                                <span class="badge bg-primary">Student</span>
+                            {% elif member.member_type == 'Faculty' %}
+                                <span class="badge bg-success">Faculty</span>
+                            {% elif member.member_type == 'Staff' %}
+                                <span class="badge bg-warning text-dark">Staff</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Phone:</strong> {{ member.phone or 'N/A' }}</p>
+                        <p><strong>Address:</strong> {{ member.address or 'N/A' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Borrowing History -->
+<div class="row">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-history"></i> Borrowing History</h3>
+        
+        {% if history %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Author</th>
+                        <th>ISBN</th>
+                        <th>Borrowed Date</th>
+                        <th>Due Date</th>
+                        <th>Returned Date</th>
+                        <th>Fine</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in history %}
+                    <tr>
+                        <td>{{ record.title }}</td>
+                        <td>{{ record.author }}</td>
+                        <td><code>{{ record.isbn }}</code></td>
+                        <td>{{ record.borrowed_date[:10] }}</td>
+                        <td>{{ record.due_date[:10] }}</td>
+                        <td>{{ record.return_date[:10] if record.return_date else 'N/A' }}</td>
+                        <td>
+                            {% if record.fine_amount > 0 %}
+                                <span class="badge bg-danger">Rs.{{ record.fine_amount }}</span>
+                            {% else %}
+                                <span class="text-muted">Rs.0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.is_returned %}
+                                <span class="badge bg-success">Returned</span>
+                            {% else %}
+                                <span class="badge bg-warning">Active</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No borrowing history found for this member.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

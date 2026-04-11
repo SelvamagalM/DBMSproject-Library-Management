@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports - Library Management{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="display-5 fw-bold text-primary">
+            <i class="fas fa-chart-bar"></i> Reports & Statistics
+        </h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Total Books</h6>
+                <h2 class="fw-bold text-primary">{{ stats.total_books }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Active Members</h6>
+                <h2 class="fw-bold text-success">{{ stats.total_members }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Active Borrowings</h6>
+                <h2 class="fw-bold text-info">{{ stats.active_borrowings }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Overdue Count</h6>
+                <h2 class="fw-bold text-danger">{{ stats.overdue_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Available Books</h6>
+                <h2 class="fw-bold text-info">{{ stats.available }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Total Issued</h6>
+                <h2 class="fw-bold text-secondary">{{ stats.total_issued }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Outstanding Fines</h6>
+                <h2 class="fw-bold text-warning">Rs.{{ "%.0f"|format(stats.total_fines) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Pending Reservations</h6>
+                <h2 class="fw-bold text-purple">{{ stats.pending_reservations }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overdue Books Report -->
+<div class="row mt-5 mb-4">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-exclamation-circle"></i> Overdue Books Report</h3>
+        
+        {% if overdue_books %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Borrowing ID</th>
+                        <th>Member Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>ISBN</th>
+                        <th>Book Title</th>
+                        <th>Author</th>
+                        <th>Due Date</th>
+                        <th>Days Overdue</th>
+                        <th>Estimated Fine</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for book in overdue_books %}
+                    <tr class="table-danger">
+                        <td><code>{{ book.borrowing_id }}</code></td>
+                        <td>{{ book.name }}</td>
+                        <td><a href="mailto:{{ book.email }}">{{ book.email }}</a></td>
+                        <td>{{ book.phone or 'N/A' }}</td>
+                        <td><code>{{ book.isbn }}</code></td>
+                        <td>{{ book.title }}</td>
+                        <td>{{ book.author }}</td>
+                        <td>{{ book.due_date[:10] }}</td>
+                        <td><span class="badge bg-danger">{{ book.days_overdue }}</span></td>
+                        <td><strong>Rs.{{ book.estimated_fine }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> No overdue books!
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Members with Fines -->
+<div class="row mt-4 mb-4">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-rupee-sign"></i> Members with Outstanding Fines</h3>
+
+        {% if members_with_fines %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Member ID</th>
+                        <th>Member Name</th>
+                        <th>Type</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Total Fine</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members_with_fines %}
+                    <tr>
+                        <td><code>{{ member.member_id }}</code></td>
+                        <td>{{ member.name }}</td>
+                        <td>
+                            {% if member.member_type == 'Student' %}
+                                <span class="badge bg-primary">Student</span>
+                            {% elif member.member_type == 'Faculty' %}
+                                <span class="badge bg-success">Faculty</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Staff</span>
+                            {% endif %}
+                        </td>
+                        <td><a href="mailto:{{ member.email }}">{{ member.email }}</a></td>
+                        <td>{{ member.phone or 'N/A' }}</td>
+                        <td><span class="badge bg-warning">Rs.{{ member.total_fine }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> No outstanding fines!
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Outstanding Fines Details Section -->
+<div class="row mt-4 mb-4">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-list"></i> Outstanding Fines Details</h3>
+
+        <!-- Total Outstanding Fines Card -->
+        <div class="card mb-3 border-danger">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Total Outstanding Fines</h6>
+                        <h2 class="fw-bold text-danger" id="totalOutstandingFines">Rs.0</h2>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Number of Pending Fines</h6>
+                        <h2 class="fw-bold text-danger" id="pendingFinesCount">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Outstanding Fines Table -->
+        <div class="table-responsive">
+            <table class="table table-hover table-striped" id="outstandingFinesTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Member ID</th>
+                        <th>Member Name</th>
+                        <th>Book Title</th>
+                        <th>ISBN</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Days Overdue</th>
+                        <th>Fine (Rs.)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="finesTableBody">
+                    <tr>
+                        <td colspan="9" class="text-center text-muted">Loading outstanding fines...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Top Borrowed Books -->
+<div class="row mt-4 mb-4">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-star"></i> Top 5 Most Borrowed Books</h3>
+        
+        {% if top_books %}
+        <div class="row g-3">
+            {% for book in top_books %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">{{ book.title }}</h6>
+                        <p class="card-text text-muted">by {{ book.author }}</p>
+                        <p class="card-text text-muted" style="font-size: 0.85rem;">ISBN: <code>{{ book.isbn }}</code></p>
+                        <p class="mb-0">
+                            <strong>Times Borrowed:</strong>
+                            <span class="badge bg-info">{{ book.borrow_count }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No borrowing data available yet.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Member-wise Borrowing Statistics -->
+<div class="row mt-4 mb-4">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-user-chart"></i> Member-wise Borrowing Statistics</h3>
+        
+        {% if member_stats %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Member ID</th>
+                        <th>Member Name</th>
+                        <th>Type</th>
+                        <th>Email</th>
+                        <th>Books Borrowed</th>
+                        <th>Currently Active</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in member_stats %}
+                    <tr>
+                        <td><code>MEMBER-{{ stat.member_id }}</code></td>
+                        <td>{{ stat.name }}</td>
+                        <td>
+                            {% if stat.member_type == 'Student' %}
+                                <span class="badge bg-primary">Student</span>
+                            {% elif stat.member_type == 'Faculty' %}
+                                <span class="badge bg-success">Faculty</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Staff</span>
+                            {% endif %}
+                        </td>
+                        <td><a href="mailto:{{ stat.email }}">{{ stat.email }}</a></td>
+                        <td><span class="badge bg-info">{{ stat.total_borrowed }}</span></td>
+                        <td>
+                            {% if stat.active_borrowings > 0 %}
+                                <span class="badge bg-warning">{{ stat.active_borrowings }}</span>
+                            {% else %}
+                                <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No member statistics available yet.
+        </div>
+        {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .text-purple { color: #663399; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load outstanding fines on page load
+    window.addEventListener('load', function() {
+        loadOutstandingFines();
+    });
+
+    async function loadOutstandingFines() {
+        try {
+            const response = await fetch('/api/outstanding-fines');
+            if (response.ok) {
+                const data = await response.json();
+                displayOutstandingFines(data);
+            }
+        } catch (error) {
+            console.error('Error loading outstanding fines:', error);
+        }
+    }
+
+    function displayOutstandingFines(data) {
+        const tbody = document.getElementById('finesTableBody');
+        const totalElement = document.getElementById('totalOutstandingFines');
+        const countElement = document.getElementById('pendingFinesCount');
+
+        totalElement.textContent = `Rs.${data.total_amount.toFixed(0)}`;
+        countElement.textContent = data.count;
+
+        if (data.fines.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center alert alert-success"><i class="fas fa-check-circle"></i> No outstanding fines!</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.fines.map(fine => {
+            const daysOverdue = fine.days_overdue || 0;
+            const isOverdue = daysOverdue > 0;
+            const rowClass = isOverdue ? 'table-danger' : '';
+
+            return `
+                <tr class="${rowClass}">
+                    <td><code>MEMBER-${fine.member_id}</code></td>
+                    <td>${fine.name}</td>
+                    <td>${fine.title}</td>
+                    <td><code>${fine.isbn}</code></td>
+                    <td>${fine.borrowed_date ? fine.borrowed_date.substring(0, 10) : 'N/A'}</td>
+                    <td>${fine.due_date ? fine.due_date.substring(0, 10) : 'N/A'}</td>
+                    <td>
+                        <span class="badge ${isOverdue ? 'bg-danger' : 'bg-warning'}">
+                            ${daysOverdue}
+                        </span>
+                    </td>
+                    <td><strong>Rs.${fine.fine_amount}</strong></td>
+                    <td>
+                        <button class="btn btn-sm btn-success" onclick="markFinePaid(${fine.borrowing_id}, ${fine.fine_amount})">
+                            <i class="fas fa-check"></i> Mark Paid
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function markFinePaid(borrowingId, fineAmount) {
+        if (!confirm(`Mark fine of Rs.${fineAmount} as paid?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/fines/mark-paid/${borrowingId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                showAlert('Success! ' + result.message, 'success');
+                loadOutstandingFines();
+            } else {
+                const error = await response.json();
+                showAlert('Error: ' + error.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showAlert('Error marking fine as paid', 'error');
+        }
+    }
+
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.prepend(alertDiv);
+        setTimeout(() => alertDiv.remove(), 3000);
+    }
+</script>
+{% endblock %}
