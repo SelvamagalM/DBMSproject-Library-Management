@@ -956,5 +956,8 @@ def not_found(error):
 def server_error(error):
     return render_template('500.html'), 500
 
+# WSGI application wrapper for production servers
+wsgi_app = app.wsgi_app
+
 if __name__ == '__main__':
     app.run(debug=True)
