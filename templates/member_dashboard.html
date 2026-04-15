@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}My Dashboard - Library Management{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="mb-3">
+        <i class="fas fa-user-circle"></i> Welcome, {{ session['member_name'] }}!
+    </h2>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-primary shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-book fa-2x text-primary mb-2"></i>
+                <h5 class="card-title">Active Borrowings</h5>
+                <p class="card-text h4 text-primary">{{ active_borrowings|length }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-info shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-history fa-2x text-info mb-2"></i>
+                <h5 class="card-title">Completed</h5>
+                <p class="card-text h4 text-info">{{ completed_borrowings|length }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-warning shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                <h5 class="card-title">My Reservations</h5>
+                <p class="card-text h4 text-warning">{{ reservations|length }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card {% if total_fines > 0 %}border-danger{% else %}border-success{% endif %} shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-rupee-sign fa-2x {% if total_fines > 0 %}text-danger{% else %}text-success{% endif %} mb-2"></i>
+                <h5 class="card-title">Outstanding Fines</h5>
+                <p class="card-text h4 {% if total_fines > 0 %}text-danger{% else %}text-success{% endif %}">Rs.{{ total_fines }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Member Info Card -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-id-card"></i> Member Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Name:</strong> {{ member.name }}</p>
+                <p><strong>Email:</strong> {{ member.email }}</p>
+                <p><strong>Phone:</strong> {{ member.phone or 'N/A' }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Member Type:</strong> <span class="badge bg-info">{{ member.member_type }}</span></p>
+                <p><strong>Membership Date:</strong> {{ member.membership_date }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Borrowings -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-book-open"></i> Active Borrowings</h5>
+    </div>
+    <div class="card-body">
+        {% if active_borrowings %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ISBN</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Borrowed Date</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for borrow in active_borrowings %}
+                            <tr class="{% if borrow.is_overdue %}table-danger{% endif %}">
+                                <td><code>{{ borrow.isbn }}</code></td>
+                                <td><strong>{{ borrow.title }}</strong></td>
+                                <td>{{ borrow.author }}</td>
+                                <td>{{ borrow.borrowed_date }}</td>
+                                <td>
+                                    <span class="{% if borrow.is_overdue %}text-danger font-weight-bold{% else %}text-success{% endif %}">
+                                        {{ borrow.due_date }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if borrow.is_overdue %}
+                                        <span class="badge bg-danger">OVERDUE</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle"></i> You don't have any active borrowings. Visit the library to borrow books!
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Outstanding Fines -->
+{% if fines %}
+<div class="card shadow-sm mb-4 border-danger">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"><i class="fas fa-rupee-sign"></i> Outstanding Fines</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-warning mb-3">
+            <strong>Total Amount Due:</strong> Rs.{{ total_fines }}
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Fine Amount</th>
+                        <th>Return Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fine in fines %}
+                        <tr>
+                            <td>{{ fine.title }}</td>
+                            <td><strong class="text-danger">Rs.{{ fine.fine_amount }}</strong></td>
+                            <td>{{ fine.return_date }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small">Please contact the library to settle outstanding fines.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- My Reservations -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-clock"></i> My Reservations</h5>
+    </div>
+    <div class="card-body">
+        {% if reservations %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ISBN</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Reserved Date</th>
+                            <th>Queue Position</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for res in reservations %}
+                            <tr>
+                                <td><code>{{ res.isbn }}</code></td>
+                                <td><strong>{{ res.title }}</strong></td>
+                                <td>{{ res.author }}</td>
+                                <td>{{ res.reservation_date }}</td>
+                                <td>
+                                    <span class="badge bg-info">{{ res.position_in_queue }}</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle"></i> You don't have any reservations.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Borrowing History -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-history"></i> Recent Borrowing History</h5>
+    </div>
+    <div class="card-body">
+        {% if completed_borrowings %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ISBN</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Borrowed</th>
+                            <th>Returned</th>
+                            <th>Fine</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for borrow in completed_borrowings %}
+                            <tr>
+                                <td><code>{{ borrow.isbn }}</code></td>
+                                <td>{{ borrow.title }}</td>
+                                <td>{{ borrow.author }}</td>
+                                <td>{{ borrow.borrowed_date }}</td>
+                                <td>{{ borrow.return_date }}</td>
+                                <td>
+                                    {% if borrow.fine_amount > 0 %}
+                                        <span class="badge bg-danger">Rs.{{ borrow.fine_amount }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">No fine</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle"></i> No borrowing history yet.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

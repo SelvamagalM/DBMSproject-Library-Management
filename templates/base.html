@@ -13,7 +13,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+            <a class="navbar-brand fw-bold" href="{% if session.get('role') == 'member' %}{{ url_for('member_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}">
                 <i class="fas fa-book"></i> Library Management
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -21,36 +21,77 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
-                            <i class="fas fa-home"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'books_page' %}active{% endif %}" href="{{ url_for('books_page') }}">
-                            <i class="fas fa-book-open"></i> Books
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'members_page' %}active{% endif %}" href="{{ url_for('members_page') }}">
-                            <i class="fas fa-users"></i> Members
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'borrowing_page' %}active{% endif %}" href="{{ url_for('borrowing_page') }}">
-                            <i class="fas fa-exchange-alt"></i> Borrowing
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'reservations_page' %}active{% endif %}" href="{{ url_for('reservations_page') }}">
-                            <i class="fas fa-clock"></i> Reservations
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'reports_page' %}active{% endif %}" href="{{ url_for('reports_page') }}">
-                            <i class="fas fa-chart-bar"></i> Reports
-                        </a>
-                    </li>
+                    <!-- Admin Navigation -->
+                    {% if session.get('role') == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                                <i class="fas fa-home"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'books_page' %}active{% endif %}" href="{{ url_for('books_page') }}">
+                                <i class="fas fa-book-open"></i> Books
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'members_page' %}active{% endif %}" href="{{ url_for('members_page') }}">
+                                <i class="fas fa-users"></i> Members
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'borrowing_page' %}active{% endif %}" href="{{ url_for('borrowing_page') }}">
+                                <i class="fas fa-exchange-alt"></i> Borrowing
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'reservations_page' %}active{% endif %}" href="{{ url_for('reservations_page') }}">
+                                <i class="fas fa-clock"></i> Reservations
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'reports_page' %}active{% endif %}" href="{{ url_for('reports_page') }}">
+                                <i class="fas fa-chart-bar"></i> Reports
+                            </a>
+                        </li>
+                    <!-- Member Navigation -->
+                    {% elif session.get('role') == 'member' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'member_dashboard' %}active{% endif %}" href="{{ url_for('member_dashboard') }}">
+                                <i class="fas fa-home"></i> My Dashboard
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    <!-- User Menu -->
+                    {% if session.get('user') %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> 
+                                {% if session.get('role') == 'admin' %}
+                                    Admin
+                                {% else %}
+                                    {{ session.get('member_name', 'Member') }}
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if session.get('role') == 'admin' %}
+                                    <li><span class="dropdown-item-text">Role: <strong>Administrator</strong></span></li>
+                                {% else %}
+                                    <li><span class="dropdown-item-text">Role: <strong>Member</strong></span></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>

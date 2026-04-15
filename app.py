@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
+from functools import wraps
 import sqlite3
 from datetime import datetime, timedelta
 from db import get_connection, create_database, dict_from_row, dict_list_from_rows
@@ -6,13 +7,108 @@ from db import get_connection, create_database, dict_from_row, dict_list_from_ro
 app = Flask(__name__)
 app.secret_key = 'library_management_secret_key_2026'
 
+# Default credentials
+ADMIN_USERNAME = 'admin'
+ADMIN_PASSWORD = 'admin123'
+MEMBER_DEMO_USERNAME = 'member'
+MEMBER_DEMO_PASSWORD = 'member123'
+
 FINE_PER_DAY = 2  # Rs.2 per day
 BORROW_DAYS = 14  # Default borrowing period
 
 # Initialize database
 create_database()
 
-# ==================== HELPER FUNCTIONS ====================
+# ==================== AUTHENTICATION ====================
+
+def login_required(f):
+    """Decorator to require login."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            flash('Please login first!', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    """Decorator to require admin role."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            flash('Please login first!', 'error')
+            return redirect(url_for('login'))
+        if session.get('role') != 'admin':
+            flash('Admin access required!', 'error')
+            return redirect(url_for('member_dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def member_required(f):
+    """Decorator to require member role."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            flash('Please login first!', 'error')
+            return redirect(url_for('login'))
+        if session.get('role') != 'member':
+            flash('Member access required!', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ==================== LOGIN/LOGOUT ROUTES ====================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page for admin and members."""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        role = request.form.get('role', 'admin')
+        
+        # Check credentials
+        if role == 'admin':
+            if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+                session['user'] = username
+                session['role'] = 'admin'
+                flash('Welcome Admin!', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Invalid admin credentials!', 'error')
+        elif role == 'member':
+            # Check if member exists in database
+            conn = get_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute("SELECT member_id, name FROM members WHERE email = ? AND is_active = 1", (username,))
+                member_row = cursor.fetchone()
+                member = dict_from_row(member_row) if member_row else None
+                
+                if member and password == MEMBER_DEMO_PASSWORD:
+                    session['user'] = username
+                    session['role'] = 'member'
+                    session['member_id'] = member['member_id']
+                    session['member_name'] = member['name']
+                    flash(f"Welcome {member['name']}!", 'success')
+                    return redirect(url_for('member_dashboard'))
+                elif not member:
+                    flash('Member not found! Please use your registered email.', 'error')
+                else:
+                    flash('Invalid password!', 'error')
+            except Exception as e:
+                flash(f'Login error: {str(e)}', 'error')
+            finally:
+                conn.close()
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout user."""
+    session.clear()
+    flash('Logged out successfully!', 'success')
+    return redirect(url_for('login'))
 
 def get_dashboard_stats():
     """Get statistics for dashboard."""
@@ -66,14 +162,101 @@ def get_dashboard_stats():
 # ==================== HOME & DASHBOARD ====================
 
 @app.route('/')
+@admin_required
 def index():
-    """Home page with dashboard."""
+    """Home page with dashboard (Admin only)."""
     stats = get_dashboard_stats()
     return render_template('index.html', stats=stats)
+
+@app.route('/member-dashboard')
+@member_required
+def member_dashboard():
+    """Member dashboard showing their borrowings."""
+    member_id = session.get('member_id')
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Get member info
+        cursor.execute("SELECT name, email, phone, member_type, membership_date FROM members WHERE member_id = ?", (member_id,))
+        member = dict_from_row(cursor.fetchone())
+        
+        # Get active borrowings
+        cursor.execute("""
+            SELECT b.borrowing_id, bk.isbn, bk.title, bk.author, b.borrowed_date, b.due_date, b.is_returned
+            FROM borrowing b
+            JOIN books bk ON b.book_id = bk.book_id
+            WHERE b.member_id = ? AND b.is_returned = 0
+            ORDER BY b.due_date
+        """, (member_id,))
+        active_borrowings_raw = dict_list_from_rows(cursor.fetchall())
+        
+        # Add is_overdue flag to each borrowing
+        now = datetime.now()
+        active_borrowings = []
+        for borrow in active_borrowings_raw:
+            try:
+                # Handle both ISO format and regular datetime format
+                due_date_str = borrow['due_date']
+                if 'T' in due_date_str:
+                    due_date = datetime.fromisoformat(due_date_str.replace('Z', '+00:00'))
+                else:
+                    due_date = datetime.strptime(due_date_str, "%Y-%m-%d %H:%M:%S")
+            except:
+                # Fallback: just use current time if parsing fails
+                due_date = now
+            
+            borrow['is_overdue'] = now > due_date
+            active_borrowings.append(borrow)
+        
+        # Get completed borrowings
+        cursor.execute("""
+            SELECT b.borrowing_id, bk.isbn, bk.title, bk.author, b.borrowed_date, b.due_date, 
+                   b.return_date, b.fine_amount, b.is_returned
+            FROM borrowing b
+            JOIN books bk ON b.book_id = bk.book_id
+            WHERE b.member_id = ? AND b.is_returned = 1
+            ORDER BY b.return_date DESC
+            LIMIT 10
+        """, (member_id,))
+        completed_borrowings = dict_list_from_rows(cursor.fetchall())
+        
+        # Get member's reservations
+        cursor.execute("""
+            SELECT r.reservation_id, bk.isbn, bk.title, bk.author, r.reservation_date,
+                   COUNT(*) OVER (PARTITION BY r.book_id ORDER BY r.reservation_date) as position_in_queue
+            FROM reservations r
+            JOIN books bk ON r.book_id = bk.book_id
+            WHERE r.member_id = ? AND r.is_fulfilled = 0
+            ORDER BY r.reservation_date
+        """, (member_id,))
+        reservations = dict_list_from_rows(cursor.fetchall())
+        
+        # Get fines for this member
+        cursor.execute("""
+            SELECT b.borrowing_id, bk.title, b.fine_amount, b.return_date
+            FROM borrowing b
+            JOIN books bk ON b.book_id = bk.book_id
+            WHERE b.member_id = ? AND b.fine_amount > 0
+            ORDER BY b.return_date DESC
+        """, (member_id,))
+        fines = dict_list_from_rows(cursor.fetchall())
+        total_fines = sum(f.get('fine_amount', 0) for f in fines)
+        
+        return render_template('member_dashboard.html',
+                             member=member,
+                             active_borrowings=active_borrowings,
+                             completed_borrowings=completed_borrowings,
+                             reservations=reservations,
+                             fines=fines,
+                             total_fines=total_fines)
+    finally:
+        conn.close()
 
 # ==================== BOOKS ROUTES ====================
 
 @app.route('/books')
+@admin_required
 def books_page():
     """Books management page."""
     conn = get_connection()
@@ -92,6 +275,7 @@ def books_page():
     return render_template('books.html', books=books_list)
 
 @app.route('/api/books/search', methods=['GET'])
+@admin_required
 def search_books():
     """Search books by ISBN or title."""
     search_term = request.args.get('q', '').strip()
@@ -151,6 +335,7 @@ def add_book():
 # ==================== MEMBERS ROUTES ====================
 
 @app.route('/members')
+@admin_required
 def members_page():
     """Members management page."""
     conn = get_connection()
@@ -170,6 +355,7 @@ def members_page():
     return render_template('members.html', members=members_list)
 
 @app.route('/members/<int:member_id>')
+@admin_required
 def member_detail(member_id):
     """View member details and borrowing history."""
     conn = get_connection()
@@ -237,6 +423,7 @@ def register_member():
 # ==================== BORROWING ROUTES ====================
 
 @app.route('/borrowing')
+@admin_required
 def borrowing_page():
     """Borrowing and returns page."""
     conn = get_connection()
@@ -346,7 +533,17 @@ def return_book():
         
         # Calculate fine
         return_date = datetime.now()
-        due_date = datetime.strptime(record['due_date'], "%Y-%m-%d %H:%M:%S")
+        
+        # Handle both ISO format and regular datetime format
+        due_date_str = record['due_date']
+        try:
+            if 'T' in due_date_str:
+                due_date = datetime.fromisoformat(due_date_str.replace('Z', '+00:00'))
+            else:
+                due_date = datetime.strptime(due_date_str, "%Y-%m-%d %H:%M:%S")
+        except:
+            due_date = return_date
+        
         fine_amount = 0
         
         if return_date > due_date:
@@ -382,6 +579,7 @@ def return_book():
 # ==================== RESERVATIONS ROUTES ====================
 
 @app.route('/reservations')
+@admin_required
 def reservations_page():
     """Reservations page."""
     conn = get_connection()
@@ -577,6 +775,7 @@ def mark_fine_paid(borrowing_id):
 # ==================== REPORTS ROUTES ====================
 
 @app.route('/reports')
+@admin_required
 def reports_page():
     """Reports page."""
     conn = get_connection()

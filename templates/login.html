@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 100%;
+            padding: 40px;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-header h1 {
+            color: #667eea;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .login-header .subtitle {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .role-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            background: white;
+            color: #333;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .role-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .role-btn:hover {
+            border-color: #667eea;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .form-control {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px 12px;
+            font-size: 0.95rem;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .alert {
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .demo-credentials {
+            background: #f0f4ff;
+            border: 1px solid #e0e7ff;
+            border-radius: 5px;
+            padding: 12px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+        }
+        .demo-credentials h6 {
+            color: #667eea;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .demo-credentials p {
+            margin-bottom: 4px;
+            color: #333;
+        }
+        .demo-credentials code {
+            background: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- Header -->
+        <div class="login-header">
+            <h1><i class="fas fa-book"></i></h1>
+            <h1>Library Management</h1>
+            <p class="subtitle">System Login</p>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Role Selector -->
+        <div class="role-selector">
+            <button class="role-btn active" onclick="setRole('admin')">
+                <i class="fas fa-user-shield"></i> Admin
+            </button>
+            <button class="role-btn" onclick="setRole('member')">
+                <i class="fas fa-user"></i> Member
+            </button>
+        </div>
+
+        <!-- Login Form -->
+        <form method="POST" id="loginForm">
+            <input type="hidden" name="role" id="role" value="admin">
+
+            <div class="form-group">
+                <label class="form-label" id="userLabel">Admin Username</label>
+                <input type="text" class="form-control" name="username" id="username" placeholder="Enter username" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-control" name="password" placeholder="Enter password" required>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+        </form>
+
+        <!-- Demo Credentials -->
+        <div class="demo-credentials">
+            <h6><i class="fas fa-info-circle"></i> Demo Credentials</h6>
+            <p><strong>Admin:</strong> <code>admin</code> / <code>admin123</code></p>
+            <p><strong>Member:</strong> Use any member email / <code>member123</code></p>
+            <p style="margin-bottom: 0; font-style: italic; margin-top: 8px;">Add members through admin panel first</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function setRole(role) {
+            document.getElementById('role').value = role;
+            document.getElementById('username').value = '';
+            
+            // Update button states
+            document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.role-btn').classList.add('active');
+            
+            // Update label
+            if (role === 'admin') {
+                document.getElementById('userLabel').textContent = 'Admin Username';
+                document.getElementById('username').placeholder = 'Enter admin username';
+            } else {
+                document.getElementById('userLabel').textContent = 'Member Email';
+                document.getElementById('username').placeholder = 'Enter your member email';
+            }
+        }
+
+        // Ensure correct button is active on page load
+        window.addEventListener('load', () => {
+            document.querySelectorAll('.role-btn').forEach((btn, idx) => {
+                if (idx === 0) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+        });
+    </script>
+</body>
+</html>
