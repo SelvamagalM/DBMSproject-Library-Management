@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
 from functools import wraps
 import sqlite3
+import os
 from datetime import datetime, timedelta
 from db import get_connection, create_database, dict_from_row, dict_list_from_rows
 
@@ -84,6 +85,52 @@ def login():
             # Check if member exists in database
             try:
                 conn = get_connection()
+                if not conn:
+                    flash('Database unavailable. Please try again later.', 'error')
+                    return render_template('login.html') if os.path.exists('templates/login.html') else '''
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Library Management - Login</title>
+                        <style>
+                            body { font-family: Arial; background: #f0f0f0; margin: 0; }
+                            .login-container { max-width: 400px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                            h1 { text-align: center; color: #333; }
+                            .form-group { margin: 15px 0; }
+                            label { display: block; margin-bottom: 5px; font-weight: bold; }
+                            input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+                            button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+                            button:hover { background: #0056b3; }
+                            .error { color: red; text-align: center; margin: 10px 0; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="login-container">
+                            <h1>📚 Library Management</h1>
+                            <div class="error">Database unavailable</div>
+                            <form method="POST">
+                                <div class="form-group">
+                                    <label>Login As:</label>
+                                    <select name="role" required>
+                                        <option value="admin">Admin</option>
+                                        <option value="member">Member</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Username/Email:</label>
+                                    <input type="text" name="username" placeholder="admin or email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Password:</label>
+                                    <input type="password" name="password" placeholder="Password" required>
+                                </div>
+                                <button type="submit">Login</button>
+                            </form>
+                        </div>
+                    </body>
+                    </html>
+                    '''
+                
                 cursor = conn.cursor()
                 cursor.execute("SELECT member_id, name FROM members WHERE email = ? AND is_active = 1", (username,))
                 member_row = cursor.fetchone()
@@ -103,6 +150,7 @@ def login():
                 else:
                     flash('Invalid password!', 'error')
             except Exception as e:
+                print(f"Database error: {e}")
                 flash(f'Database error: {str(e)}', 'error')
     
     # Return a simple HTML login form
@@ -167,10 +215,21 @@ def logout():
 
 def get_dashboard_stats():
     """Get statistics for dashboard."""
-    conn = get_connection()
-    cursor = conn.cursor()
-
     try:
+        conn = get_connection()
+        if not conn:
+            return {
+                'total_books': 0,
+                'total_members': 0,
+                'active_borrowings': 0,
+                'overdue_count': 0,
+                'available_books': 0,
+                'outstanding_fines': 0,
+                'outstanding_fines_count': 0
+            }
+        
+        cursor = conn.cursor()
+
         # Total books
         cursor.execute("SELECT COUNT(*) as count FROM books")
         total_books = cursor.fetchone()['count']
@@ -202,6 +261,8 @@ def get_dashboard_stats():
         cursor.execute("SELECT COUNT(*) as count FROM borrowing WHERE fine_amount > 0")
         outstanding_fines_count = cursor.fetchone()['count']
 
+        conn.close()
+        
         return {
             'total_books': total_books,
             'total_members': total_members,
@@ -211,8 +272,17 @@ def get_dashboard_stats():
             'outstanding_fines': outstanding_fines,
             'outstanding_fines_count': outstanding_fines_count
         }
-    finally:
-        conn.close()
+    except Exception as e:
+        print(f"Dashboard stats error: {e}")
+        return {
+            'total_books': 0,
+            'total_members': 0,
+            'active_borrowings': 0,
+            'overdue_count': 0,
+            'available_books': 0,
+            'outstanding_fines': 0,
+            'outstanding_fines_count': 0
+        }
 
 # ==================== HOME & DASHBOARD ====================
 

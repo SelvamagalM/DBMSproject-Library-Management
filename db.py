@@ -89,11 +89,16 @@ def create_database():
 
 def get_connection():
     """Get a database connection."""
-    if not os.path.exists(DB_PATH):
-        create_database()
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        if not os.path.exists(DB_PATH):
+            create_database()
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        # Return None if database is not available
+        return None
 
 def dict_from_row(row):
     """Convert sqlite3.Row to dict."""
