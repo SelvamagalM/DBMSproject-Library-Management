@@ -166,9 +166,20 @@ def get_dashboard_stats():
 # ==================== HOME & DASHBOARD ====================
 
 @app.route('/')
+def home():
+    """Home page - redirect to login."""
+    if 'user' in session:
+        if session.get('role') == 'admin':
+            stats = get_dashboard_stats()
+            return render_template('index.html', stats=stats)
+        else:
+            return redirect(url_for('member_dashboard'))
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
 @admin_required
 def index():
-    """Home page with dashboard (Admin only)."""
+    """Admin dashboard."""
     stats = get_dashboard_stats()
     return render_template('index.html', stats=stats)
 
