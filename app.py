@@ -16,8 +16,12 @@ MEMBER_DEMO_PASSWORD = 'member123'
 FINE_PER_DAY = 2  # Rs.2 per day
 BORROW_DAYS = 14  # Default borrowing period
 
-# Initialize database
-create_database()
+# Initialize database (skip on Vercel serverless)
+try:
+    create_database()
+except Exception as e:
+    # If database creation fails, continue (might be Vercel or deployment issue)
+    print(f"Note: Database initialization skipped or failed: {e}")
 
 # ==================== AUTHENTICATION ====================
 
@@ -872,6 +876,11 @@ def reports_page():
         conn.close()
 
 # ==================== ERROR HANDLERS ====================
+
+@app.route('/health')
+def health():
+    """Health check endpoint for Vercel."""
+    return jsonify({'status': 'ok', 'message': 'Library app is running'}), 200
 
 @app.errorhandler(404)
 def not_found(error):
